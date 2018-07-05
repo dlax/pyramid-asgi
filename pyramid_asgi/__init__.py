@@ -1,9 +1,23 @@
-from pyramid.config import Configurator
+from asgiref.wsgi import WsgiToAsgi
 
 
-def main(global_config, **settings):
-    """ This function returns a Pyramid WSGI application.
+class PyramidWsgiToAsgi(WsgiToAsgi):
+    """Extends the WsgiToAsgi wrapper to look for ASGI consumer registered in
+    Pyramid's registry (under "protocol-router" key).
     """
-    config = Configurator(settings=settings)
-    config.scan()
-    return config.make_wsgi_app()
+
+    def __call__(self, scope, **kwargs):
+        protocol = scope["type"]
+        path = scope["path"]
+        protocol_router = self.wsgi_application.registry['protocol-router']
+        try:
+            consumer = protocol_router[protocol][path]
+        except KeyError:
+            return super().__call__(scope, **kwargs)
+        return consumer(self.wsgi_application, scope)
+
+
+def includeme(config):
+    config.registry.setdefault(
+        'protocol-router', {'http': {}, 'websocket': {}},
+    )
