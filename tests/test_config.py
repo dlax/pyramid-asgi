@@ -1,5 +1,9 @@
 from asgiref.testing import ApplicationCommunicator
 from asgiref.wsgi import WsgiToAsgiInstance
+from pyramid.exceptions import (
+    ConfigurationConflictError,
+    ConfigurationError,
+)
 from pyramid.config import Configurator
 from pyramid.response import Response
 from pyramid import testing
@@ -13,6 +17,19 @@ def test_config():
     with testing.testConfig() as config:
         config.include('pyramid_asgi')
     assert 'protocol-router' in config.registry
+
+
+def test_bad_consumer_registration():
+    with Configurator() as config:
+        config.include('pyramid_asgi')
+
+        with pytest.raises(ConfigurationError):
+            config.add_consumer(None, 'unknown-protocol', None)
+
+        config.add_consumer(None, 'http', 'dup')
+        config.add_consumer(None, 'http', 'dup')
+        with pytest.raises(ConfigurationConflictError):
+            config.commit()
 
 
 class _TestConsumer(WsgiToAsgiInstance):
@@ -31,7 +48,7 @@ async def test_protocol_router():
 
     with Configurator() as config:
         config.include('pyramid_asgi')
-        config.registry['protocol-router']['websocket']['/ws'] = _TestConsumer
+        config.add_consumer(_TestConsumer, 'websocket', '/ws')
         config.add_route('hello', '/hello')
         config.add_view(hello_view, route_name='hello')
         app = config.make_wsgi_app()

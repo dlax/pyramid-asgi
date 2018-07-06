@@ -1,4 +1,7 @@
 from asgiref.wsgi import WsgiToAsgi
+from pyramid.exceptions import (
+    ConfigurationError,
+)
 
 
 class PyramidWsgiToAsgi(WsgiToAsgi):
@@ -17,7 +20,24 @@ class PyramidWsgiToAsgi(WsgiToAsgi):
         return consumer(self.wsgi_application, scope)
 
 
+def add_consumer(config, consumer, protocol, path):
+    protocol_router = config.registry['protocol-router']
+    try:
+        routes = protocol_router[protocol]
+    except KeyError:
+        raise ConfigurationError(
+            "unknown '{}' protocol (acceptable values are: {}".format(
+                protocol, ', '.join(protocol_router.keys()))
+        )
+
+    def register():
+        routes[path] = consumer
+
+    config.action('asgi.{}[{}]'.format(protocol, path), register)
+
+
 def includeme(config):
     config.registry.setdefault(
         'protocol-router', {'http': {}, 'websocket': {}},
     )
+    config.add_directive('add_consumer', add_consumer)
