@@ -1,6 +1,9 @@
 Pyramid ASGI
 ============
 
+.. image:: https://travis-ci.org/dlax/pyramid-asgi.svg?branch=master
+    :target: https://travis-ci.org/dlax/pyramid-asgi
+
 Getting Started
 ---------------
 
