@@ -1,0 +1,10 @@
+build/
+dist/
+venv/
+*.egg-info/
+*.egg
+
+.coverage
+.tox
+.pytest_cache
+htmlcov
